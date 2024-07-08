@@ -41,43 +41,43 @@ public class RoutingTabelle {
         }
     }
 
-    public void update(RoutingTabelle neueTabelle) {
-        synchronized (listeEintraege) {
-            // Aktualisiere oder füge Einträge hinzu
-            for (RoutingEintrag neuerEintrag : neueTabelle.getTabelle()) {
-                boolean gefunden = false;
-                for (int i = 0; i < listeEintraege.size(); i++) {
-                    RoutingEintrag eintrag = listeEintraege.get(i);
-                    if (eintrag.getZielPeer().equals(neuerEintrag.getZielPeer())) {
-                        // Eintrag existiert bereits, aktualisiere ihn
-                        listeEintraege.set(i, neuerEintrag);
-                        gefunden = true;
-                        break;
+    public synchronized void update(RoutingTabelle neueTabelle) {
+        // Debug-Ausgabe der aktuellen und neuen Routing-Tabelle
+        System.out.println("Aktuelle RoutingTabelle: " + this);
+        System.out.println("Neue RoutingTabelle: " + neueTabelle);
+
+        // Überprüfe jeden neuen Eintrag
+        for (RoutingEintrag neuerEintrag : neueTabelle.getTabelle()) {
+            // Erhöhe die Metrik des neuen Eintrags um 1
+            int neueMetrik = neuerEintrag.getMetrik() + 1;
+            neuerEintrag.setMetrik(neueMetrik);
+
+            boolean aktualisiert = false;
+
+            // Suche nach einem bestehenden Eintrag mit dem gleichen ZielPeer
+            for (RoutingEintrag bestehenderEintrag : listeEintraege) {
+                if (bestehenderEintrag.getZielPeer().equals(neuerEintrag.getZielPeer())) {
+                    // Aktualisiere den bestehenden Eintrag, falls die neue Metrik besser ist
+                    if (neuerEintrag.getMetrik() < bestehenderEintrag.getMetrik()) {
+                        System.out.println("Aktualisiere Eintrag: " + bestehenderEintrag + " mit " + neuerEintrag);
+                        bestehenderEintrag.setGateway(neuerEintrag.getGateway());
+                        bestehenderEintrag.setMetrik(neuerEintrag.getMetrik());
                     }
-                }
-                if (!gefunden) {
-                    // Eintrag existiert nicht, füge ihn hinzu
-                    listeEintraege.add(neuerEintrag);
+                    aktualisiert = true;
+                    break;
                 }
             }
 
-            // Setze die Metrik auf 16 für Einträge, die nicht in der neuen Tabelle sind
-            for (RoutingEintrag eintrag : listeEintraege) {
-                boolean gefunden = false;
-                for (RoutingEintrag neuerEintrag : neueTabelle.getTabelle()) {
-                    if (eintrag.getZielPeer().equals(neuerEintrag.getZielPeer())) {
-                        gefunden = true;
-                        break;
-                    }
-                }
-                if (!gefunden) {
-                    eintrag.setMetrik(16);
-                }
+            // Falls kein bestehender Eintrag gefunden wurde, füge den neuen Eintrag hinzu
+            if (!aktualisiert) {
+                System.out.println("Füge neuen Eintrag hinzu: " + neuerEintrag);
+                listeEintraege.add(neuerEintrag);
             }
         }
+
+        // Debug-Ausgabe der aktualisierten Routing-Tabelle
+        System.out.println("Aktualisierte RoutingTabelle: " + this);
     }
-
-
     // Methode zum Erstellen einer Tabelle aus einem String
     public static RoutingTabelle fromString(String str) {
         RoutingTabelle tabelle = new RoutingTabelle();
